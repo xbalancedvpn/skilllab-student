@@ -78,7 +78,9 @@ function nc2Hub(){
   const st=trainState(),practicePassed=Number(st.practice_best||0)>=PASS,ready=st.learn_done&&practicePassed&&st.procedure_done;
   const c2=trainStateC2(),c2Practice=Number(c2.practice_best||0)>=PASS,c2Unlocked=ready,c2Done=c2Unlocked&&c2.learn_done&&c2Practice&&c2.cable_done&&c2.network_done;
   const c3=trainStateC3(),c3Practice=Number(c3.practice_best||0)>=PASS,c3Unlocked=c2Done,c3Done=c3Unlocked&&c3.learn_done&&c3Practice&&c3.access_done&&c3.services_done;
-  app.innerHTML=`<article class="card hero"><div class="ey ok">CSS NC II READINESS HUB</div><h1>Train by competency, not by memorizing answers.</h1><p class="muted">Each COC uses guided review, randomized practice and procedure-based drills before the scored simulator bank.</p></article>
+  const c4=trainStateC4(),c4Practice=Number(c4.practice_best||0)>=PASS,c4Unlocked=c3Done,c4Done=c4Unlocked&&c4.learn_done&&c4Practice&&c4.maintenance_done&&c4.fault_done;
+  const allDone=ready&&c2Done&&c3Done&&c4Done;
+  app.innerHTML=`<article class="card hero"><div class="ey ok">CSS NC II READINESS HUB</div><h1>${allDone?'All four digital preparation paths completed.':'Train by competency, not by memorizing answers.'}</h1><p class="muted">${allDone?'Continue hands-on laboratory practice and mapped simulations to strengthen performance evidence.':'Each COC uses guided review, randomized practice and procedure-based drills before the scored simulator bank.'}</p>${allDone?'<div class="notice" style="margin-top:14px"><b>Digital preparation: 4/4 COCs complete</b><br><span class="muted">SkillLab status is training evidence only and is not an official TESDA assessment result.</span></div>':''}</article>
   <div class="grid g2">
   <article class="card"><div class="row"><div><div class="ey">COC 1 · ELC724331</div><h2 style="margin:4px 0">Install and Configure Computer Systems</h2></div><div class="readiness-ring">${coc1Pct(st)}%</div></div>
   <div class="training-path" style="margin-top:14px">
@@ -96,16 +98,25 @@ function nc2Hub(){
   </div><div class="notice" style="margin-top:14px"><b>${!c2Unlocked?'Complete COC 1 digital preparation to unlock.':c2Done?'COC 2 digital preparation complete.':!c2.learn_done?'Current target: Finish Learn':!c2Practice?'Current target: Reach '+PASS+'% in Practice':!c2.cable_done?'Current target: Complete Cable Drill':'Current target: Complete Network Drill'}</b></div></article>
   </div>
 
+  <div class="grid g2">
   <article class="card ${c3Unlocked?'':'locked'}"><div class="row"><div><div class="ey">COC 3 · ELC724333</div><h2 style="margin:4px 0">Set-up Computer Servers</h2></div><div class="readiness-ring">${c3Unlocked?coc3Pct(c3):0}%</div></div>
-  <div class="training-path" style="margin-top:14px;grid-template-columns:repeat(4,1fr)">
+  <div class="training-path" style="margin-top:14px">
     <div class="training-step ${c3.learn_done?'done':c3Unlocked?'':'locked'}"><div class="num">1</div><b>LEARN</b><div class="stage-note">User access, services, pre-deployment.</div><button id="c3learn" class="btn ${c3Unlocked&&!c3.learn_done?'primary':''}" style="margin-top:10px;width:100%" ${c3Unlocked?'':'disabled'}>${c3.learn_done?'Review again':'Start Learn'}</button></div>
     <div class="training-step ${c3Practice?'done':c3.learn_done?'':'locked'}"><div class="num">2</div><b>PRACTICE</b><div class="stage-note">${c3.practice_best!=null?'Best: '+c3.practice_best+'% · pass '+PASS+'%':'Randomized server questions.'}</div><button id="c3practice" class="btn ${c3.learn_done?'primary':''}" style="margin-top:10px;width:100%" ${c3.learn_done?'':'disabled'}>${c3Practice?'Practice again':'Start Practice'}</button></div>
     <div class="training-step ${c3.access_done?'done':c3Practice?'':'locked'}"><div class="num">3</div><b>USER ACCESS</b><div class="stage-note">${c3.access_done?'Completed':'Folders, permissions and security checks.'}</div><button id="c3access" class="btn ${c3Practice?'primary':''}" style="margin-top:10px;width:100%" ${c3Practice?'':'disabled'}>${c3.access_done?'Run again':'Start Access Drill'}</button></div>
     <div class="training-step ${c3.services_done?'done':c3.access_done?'':'locked'}"><div class="num">4</div><b>SERVICES</b><div class="stage-note">${c3.services_done?'Completed':'Role selection + pre-deployment workflow.'}</div><button id="c3services" class="btn ${c3.access_done?'primary':''}" style="margin-top:10px;width:100%" ${c3.access_done?'':'disabled'}>${c3.services_done?'Run again':'Start Services Drill'}</button></div>
   </div><div class="notice" style="margin-top:14px"><b>${!c3Unlocked?'Complete COC 2 digital preparation to unlock.':c3Done?'COC 3 digital preparation complete.':!c3.learn_done?'Current target: Finish Learn':!c3Practice?'Current target: Reach '+PASS+'% in Practice':!c3.access_done?'Current target: Complete User Access Drill':'Current target: Complete Services Drill'}</b></div></article>
 
-  <div class="grid g2"><article class="card"><div class="ey">UP NEXT</div><div class="lesson-block hub-coc next" style="margin-top:9px"><b>COC 4 · Maintain and Repair Computer Systems and Networks</b><div class="stage-note">${c3Done?'Ready for the next build phase.':'Unlocks after COC 3 digital preparation.'}</div></div></article>
-  <article class="card"><div class="ey">EXISTING SIMULATOR BANK</div><p class="muted">Your original scored simulations and stored attempts remain available.</p><div class="row"><b>${p?.completed?.length||0}/${catalog.length} passed</b><button id="resumeBank" class="btn">Resume simulator bank</button></div><p class="muted" style="margin-bottom:0">SkillLab readiness indicators are training evidence only; they are not official TESDA assessment results.</p></article></div>`;
+  <article class="card ${c4Unlocked?'':'locked'}"><div class="row"><div><div class="ey">COC 4 · ELC724334</div><h2 style="margin:4px 0">Maintain and Repair Computer Systems and Networks</h2></div><div class="readiness-ring">${c4Unlocked?coc4Pct(c4):0}%</div></div>
+  <div class="training-path" style="margin-top:14px">
+    <div class="training-step ${c4.learn_done?'done':c4Unlocked?'':'locked'}"><div class="num">1</div><b>LEARN</b><div class="stage-note">Plan, maintain, diagnose, rectify, inspect/test.</div><button id="c4learn" class="btn ${c4Unlocked&&!c4.learn_done?'primary':''}" style="margin-top:10px;width:100%" ${c4Unlocked?'':'disabled'}>${c4.learn_done?'Review again':'Start Learn'}</button></div>
+    <div class="training-step ${c4Practice?'done':c4.learn_done?'':'locked'}"><div class="num">2</div><b>PRACTICE</b><div class="stage-note">${c4.practice_best!=null?'Best: '+c4.practice_best+'% · pass '+PASS+'%':'Randomized maintenance questions.'}</div><button id="c4practice" class="btn ${c4.learn_done?'primary':''}" style="margin-top:10px;width:100%" ${c4.learn_done?'':'disabled'}>${c4Practice?'Practice again':'Start Practice'}</button></div>
+    <div class="training-step ${c4.maintenance_done?'done':c4Practice?'':'locked'}"><div class="num">3</div><b>MAINTENANCE</b><div class="stage-note">${c4.maintenance_done?'Completed':'Service-order and preventive-maintenance decisions.'}</div><button id="c4maint" class="btn ${c4Practice?'primary':''}" style="margin-top:10px;width:100%" ${c4Practice?'':'disabled'}>${c4.maintenance_done?'Run again':'Start Maintenance Drill'}</button></div>
+    <div class="training-step ${c4.fault_done?'done':c4.maintenance_done?'':'locked'}"><div class="num">4</div><b>FAULT ISOLATION</b><div class="stage-note">${c4.fault_done?'Completed':'Evidence → diagnosis → correction → verification.'}</div><button id="c4fault" class="btn ${c4.maintenance_done?'primary':''}" style="margin-top:10px;width:100%" ${c4.maintenance_done?'':'disabled'}>${c4.fault_done?'Run again':'Start Fault Drill'}</button></div>
+  </div><div class="notice" style="margin-top:14px"><b>${!c4Unlocked?'Complete COC 3 digital preparation to unlock.':c4Done?'COC 4 digital preparation complete.':!c4.learn_done?'Current target: Finish Learn':!c4Practice?'Current target: Reach '+PASS+'% in Practice':!c4.maintenance_done?'Current target: Complete Maintenance Drill':'Current target: Complete Fault Isolation'}</b></div></article>
+  </div>
+
+  <article class="card"><div class="row"><div><div class="ey">APPLIED SIMULATOR BANK</div><b>Existing SkillLab troubleshooting evidence</b></div><button id="resumeBank" class="btn">Resume simulator bank</button></div><p class="muted">${p?.completed?.length||0}/${catalog.length} scored simulations passed. COC 4 mapped simulations include No Display, No Boot Device, Overheating and Slow Storage scenarios.</p><p class="muted" style="margin-bottom:0">SkillLab readiness indicators are training evidence only; they are not official TESDA assessment results.</p></article>`;
   document.querySelector('#c1learn').onclick=coc1Learn;
   const pr=document.querySelector('#c1practice');if(pr)pr.onclick=coc1Practice;
   const dr=document.querySelector('#c1drill');if(dr)dr.onclick=coc1Drill;
@@ -117,6 +128,10 @@ function nc2Hub(){
   const c3p=document.querySelector('#c3practice');if(c3p)c3p.onclick=coc3Practice;
   const c3a=document.querySelector('#c3access');if(c3a)c3a.onclick=coc3AccessDrill;
   const c3s=document.querySelector('#c3services');if(c3s)c3s.onclick=coc3ServicesDrill;
+  const c4l=document.querySelector('#c4learn');if(c4l)c4l.onclick=coc4Learn;
+  const c4p=document.querySelector('#c4practice');if(c4p)c4p.onclick=coc4Practice;
+  const c4m=document.querySelector('#c4maint');if(c4m)c4m.onclick=coc4MaintenanceDrill;
+  const c4f=document.querySelector('#c4fault');if(c4f)c4f.onclick=coc4FaultDrill;
   document.querySelector('#resumeBank').onclick=resumeFoundation;
 }
 function coc1Learn(){
@@ -395,6 +410,110 @@ function coc3ServicesResult(){
   app.innerHTML=`<article class="card hero"><div class="ey ok">COC 3 DIGITAL PREPARATION COMPLETE</div><h1>User access and server-service workflow completed.</h1><p>You completed the current SkillLab digital path for COC 3. Real NOS account creation, server-role installation/configuration, client testing and assessor-observed performance still require hands-on evidence.</p><div class="row"><button id="c3donehub" class="btn">Back to NC II hub</button><button id="c3serversim" class="btn primary">Open mapped server simulator</button></div></article>`;
   document.querySelector('#c3donehub').onclick=nc2Hub;
   document.querySelector('#c3serversim').onclick=async()=>{const slug=catalog.find(a=>COC_BY_SLUG[a.slug]===3&&!new Set(p?.completed||[]).has(a.slug))?.slug||catalog.find(a=>COC_BY_SLUG[a.slug]===3)?.slug||p?.next_slug;const x=await start(slug);if(x.error)return alert(x.error);render()};
+}
+const COC4_LESSON=[
+{n:1,title:'Plan and prepare for maintenance and repair',points:['Read the job/service order and confirm the system/network specifications before touching the equipment.','Plan the maintenance or fault diagnosis according to the reported requirement.','Obtain the correct hardware/software tools, testing devices and materials, then check that they operate safely.','Follow OHS procedures and identify the exact equipment covered by the service request.'],check:'The service order defines the job. Do not repair the wrong device or start without safe, working test tools.'},
+{n:2,title:'Maintain computer systems and networks',points:['Use appropriate PPE and verify normal system/network operation first.','Perform scheduled or periodic maintenance according to manufacturer requirements.','Make needed repairs or replacements using established procedures.','Respond to unexpected conditions without creating new faults or unsafe conditions.'],check:'Preventive maintenance starts from a known baseline and manufacturer guidance—not random cleaning or parts replacement.'},
+{n:3,title:'Diagnose faults',points:['Use PPE and collect evidence from the reported symptom.','Diagnose faults using a logical, standard procedure and isolate the failing area before replacing parts.','Apply contingency measures when needed to protect data, service continuity or safety.','Respond to unplanned conditions according to procedure.'],check:'A likely cause is not yet a diagnosis; confirm it with evidence before corrective action.'},
+{n:4,title:'Rectify or correct defects',points:['Use appropriate PPE during corrective work.','Replace or correct the defective component without damaging nearby equipment, cabling or services.','Make only the adjustments needed by the established procedure.','Handle unexpected conditions safely and document significant changes.'],check:'Correct the confirmed defect with the least disruptive appropriate action, then verify the result.'},
+{n:5,title:'Inspect, test and close the job',points:['Perform final inspection and testing according to manufacturer guidance.','Confirm the computer system/network operates safely after the repair.','Apply OHS and 5S, clean the work site, and leave it safe.','Dispose of excess or defective materials according to WEEE/3Rs practices.','Complete the required service or maintenance report.'],check:'Repair is not complete until the system is retested, the workplace is safe, and the service result is documented.'}
+];
+const COC4_QUIZ=[
+{q:'What should the technician check first before starting a maintenance job?',a:['The job/service order and equipment specifications','Which replacement part is most expensive','The desktop wallpaper','The user’s social media account'],c:0,why:'Planning begins by confirming the actual job requirement, system and instructions.'},
+{q:'Why should testing devices be checked before diagnosis?',a:['To confirm safe and correct operation','To make the job longer','To avoid using evidence','To replace PPE'],c:0,why:'Faulty or unsafe test equipment can create bad conclusions or hazards.'},
+{q:'What is the best first step in preventive maintenance?',a:['Establish normal function/baseline and follow manufacturer guidance','Replace the motherboard','Reinstall all software','Change every network setting'],c:0,why:'Maintenance should be based on known operation and scheduled/manufacturer requirements.'},
+{q:'A PC has an intermittent fault. What separates diagnosis from guessing?',a:['Evidence that isolates the failing area','Choosing the most common part','Replacing several parts at once','Repeating the user complaint'],c:0,why:'Diagnosis requires evidence and a logical standard procedure.'},
+{q:'Why may contingency measures be needed during troubleshooting?',a:['To protect data, safety or service continuity','To hide the fault','To skip testing','To make every user an administrator'],c:0,why:'Contingencies reduce risk when faults or unplanned events could affect data, safety or service.'},
+{q:'A network cable is confirmed defective. What is the correct corrective approach?',a:['Replace/correct it without damaging nearby services and then retest','Change all client IP addresses first','Replace the server','Ignore it if link occasionally returns'],c:0,why:'The confirmed defective part should be corrected with minimal disruption and verified afterward.'},
+{q:'After replacing a faulty component, what should happen next?',a:['Final inspection and functional/safety testing','Immediately close the service order','Discard all documentation','Change unrelated settings'],c:0,why:'Corrective work must be followed by inspection and tests that confirm safe operation.'},
+{q:'Which action belongs to proper job close-out?',a:['5S cleanup, WEEE/3Rs disposal and service report','Leave failed parts on the floor','Keep the fault undocumented','Skip final testing'],c:0,why:'COC 4 includes workplace cleanup, disposal practices and report completion.'},
+{q:'A PC is overheating. Which evidence most strongly supports a cooling-system fault?',a:['High temperature plus abnormal fan/heatsink condition','Slow Internet speed','Wrong printer driver','A new desktop background'],c:0,why:'Diagnosis should connect the symptom to relevant physical evidence.'},
+{q:'A workstation loses link whenever its Ethernet cable is moved. What should be isolated first?',a:['Cable/connector integrity','Windows activation','CPU thermal paste','Monitor power'],c:0,why:'A movement-related link fault points first to the physical network path.'},
+{q:'A drive reports SMART warnings and causes freezes. What is a sensible contingency before replacement?',a:['Protect/back up important data where possible','Run random registry cleaners','Disable all network adapters','Change the monitor cable'],c:0,why:'Data protection is an appropriate contingency when storage failure is suspected.'},
+{q:'When is a repair job complete?',a:['After the defect is corrected, retested, cleaned up and documented','As soon as a replacement part is installed','When the user stops watching','When the PC powers on once'],c:0,why:'COC 4 includes inspection, safe operation, cleanup/disposal and reporting after corrective work.'}
+];
+function trainKeyC4(){return 'skilllab-nc2-v1:'+String(user?.id||'guest')+':'+String(p?.class_id||code||'class')+':coc4'}
+function trainStateC4(){try{return JSON.parse(localStorage.getItem(trainKeyC4())||'{}')}catch{return{}}}
+function setTrainC4(patch){const v={...trainStateC4(),...patch,updated_at:new Date().toISOString()};localStorage.setItem(trainKeyC4(),JSON.stringify(v));return v}
+function coc4Pct(st=trainStateC4()){return Math.round(((st.learn_done?1:0)+(Number(st.practice_best||0)>=PASS?1:0)+(st.maintenance_done?1:0)+(st.fault_done?1:0))/4*100)}
+function coc4Ready(){const st=trainStateC4();return !!(st.learn_done&&Number(st.practice_best||0)>=PASS&&st.maintenance_done&&st.fault_done)}
+function coc4Learn(){
+  if(!coc3Ready())return nc2Hub();
+  app.innerHTML=`<article class="card hero"><div class="ey">COC 4 · LEARN</div><h1>Maintain and Repair Computer Systems and Networks</h1><p class="muted">The goal is not merely to find a fault. Follow the complete service cycle from job order and safety through diagnosis, correction, retesting, cleanup and reporting.</p></article>
+  <article class="card"><div class="grid">${COC4_LESSON.map(x=>`<div class="lesson-block"><div class="ey">ELEMENT ${x.n}</div><h3>${esc(x.title)}</h3><ul>${x.points.map(y=>`<li>${esc(y)}</li>`).join('')}</ul><div class="notice" style="margin-top:10px"><b>Checkpoint:</b> ${esc(x.check)}</div></div>`).join('')}</div></article>
+  <article class="card"><div class="row"><button id="c4backhub" class="btn">Back to hub</button><button id="c4donelearn" class="btn primary">I finished the COC 4 review</button></div></article>`;
+  document.querySelector('#c4backhub').onclick=nc2Hub;
+  document.querySelector('#c4donelearn').onclick=()=>{setTrainC4({learn_done:true});coc4Practice()};
+}
+function coc4Practice(){
+  if(!trainStateC4().learn_done)return coc4Learn();
+  const qs=shuffle(COC4_QUIZ).slice(0,10);let i=0,correct=0,locked=false;
+  const show=()=>{
+    if(i>=qs.length){const score=Math.round(correct/qs.length*100),old=Number(trainStateC4().practice_best||0);setTrainC4({practice_best:Math.max(old,score),practice_last:score});return coc4PracticeResult(score)}
+    const x=qs[i],choices=shuffle(x.a.map((label,original)=>({label,original})));
+    app.innerHTML=`<article class="card"><div class="row"><div><div class="ey">COC 4 · PRACTICE</div><b>Question ${i+1} of ${qs.length}</b></div><span class="pill">Target ${PASS}%</span></div><div class="progress" style="margin-top:12px"><span style="width:${Math.round(i/qs.length*100)}%"></span></div></article>
+    <article class="card hero"><h2>${esc(x.q)}</h2><div class="quiz-options">${choices.map(c=>`<button class="btn c4qopt" data-original="${c.original}">${esc(c.label)}</button>`).join('')}</div><div id="c4explain" class="notice" style="display:none;margin-top:12px"></div><div class="row" style="margin-top:14px"><button id="c4quitq" class="btn">Back to hub</button><button id="c4nextq" class="btn primary" disabled>${i===qs.length-1?'Finish':'Next question'}</button></div></article>`;
+    document.querySelector('#c4quitq').onclick=nc2Hub;
+    document.querySelectorAll('.c4qopt').forEach(b=>b.onclick=()=>{if(locked)return;locked=true;const ok=Number(b.dataset.original)===x.c;if(ok)correct++;document.querySelectorAll('.c4qopt').forEach(z=>{const zOk=Number(z.dataset.original)===x.c;z.classList.toggle('correct',zOk);if(z===b&&!ok)z.classList.add('wrong');z.disabled=true});const e=document.querySelector('#c4explain');e.style.display='block';e.innerHTML='<b class="'+(ok?'ok':'warn')+'">'+(ok?'Correct.':'Review this point.')+'</b><br>'+esc(x.why);document.querySelector('#c4nextq').disabled=false});
+    document.querySelector('#c4nextq').onclick=()=>{i++;locked=false;show()};
+  };show();
+}
+function coc4PracticeResult(score){
+  const pass=score>=PASS,st=trainStateC4();
+  app.innerHTML=`<article class="card hero"><div class="ey ${pass?'ok':'warn'}">COC 4 · PRACTICE RESULT</div><div class="score ${pass?'pass':'fail'}">${score}%</div><h1>${pass?'Knowledge target reached':'Review before maintenance drills'}</h1><p class="muted">Class target: ${PASS}% · Best practice score: ${Number(st.practice_best||score)}%</p><div class="row"><button id="c4rhub" class="btn">Back to hub</button><button id="c4againq" class="btn">Try another randomized set</button>${pass?'<button id="tomaint" class="btn primary">Continue to Maintenance Drill</button>':'<button id="c4review" class="btn primary">Review COC 4</button>'}</div></article>`;
+  document.querySelector('#c4rhub').onclick=nc2Hub;document.querySelector('#c4againq').onclick=coc4Practice;
+  const d=document.querySelector('#tomaint');if(d)d.onclick=coc4MaintenanceDrill;
+  const r=document.querySelector('#c4review');if(r)r.onclick=coc4Learn;
+}
+function coc4MaintenanceDrill(){
+  if(Number(trainStateC4().practice_best||0)<PASS)return coc4Practice();
+  const jobs=shuffle([
+    {title:'Quarterly desktop maintenance',detail:'PC is working normally. Service order calls for scheduled preventive maintenance.',choices:['Verify baseline operation, use PPE, inspect/clean according to manufacturer procedure, then retest','Replace the motherboard immediately','Reinstall the OS before checking anything'],correct:0,why:'Scheduled maintenance begins from the service order and normal-function baseline.'},
+    {title:'Office switch maintenance',detail:'No current outage. The job order requires inspection and preventive service.',choices:['Check normal network operation, physical condition and connections; perform approved maintenance; retest','Change all IP addresses','Factory-reset the switch without checking configuration'],correct:0,why:'Preventive work should preserve a known-good configuration and verify safe operation afterward.'},
+    {title:'Laptop cooling maintenance',detail:'Manufacturer schedule calls for cooling-path inspection; no current shutdown problem is reported.',choices:['Use safe procedure to inspect vents/fan/cooling path and clean as required, then verify temperatures','Replace the SSD','Disable thermal protection'],correct:0,why:'The maintenance action should match the scheduled requirement and manufacturer guidance.'},
+    {title:'Unexpected damaged cable during maintenance',detail:'A network cable is found with confirmed physical damage during inspection.',choices:['Document the finding, replace/correct the cable using established procedure, then retest the link','Ignore it because the original job was preventive','Change the server password instead'],correct:0,why:'A confirmed defect found during maintenance may require repair/replacement and verification.'}
+  ]);
+  let i=0,errors=0;
+  const show=()=>{
+    if(i>=jobs.length){setTrainC4({maintenance_done:true,maintenance_errors:errors});return coc4MaintenanceResult()}
+    const x=jobs[i],opts=shuffle(x.choices.map((label,original)=>({label,original})));
+    app.innerHTML=`<article class="card"><div class="row"><div><div class="ey">COC 4 · MAINTENANCE DRILL</div><b>Job ${i+1} of ${jobs.length}</b></div><span class="pill">Service-order based</span></div></article>
+    <article class="card hero"><h2>${esc(x.title)}</h2><p>${esc(x.detail)}</p><div class="quiz-options">${opts.map(o=>`<button class="btn maintopt" data-original="${o.original}">${esc(o.label)}</button>`).join('')}</div><div id="maintmsg" class="notice" style="display:none;margin-top:12px"></div><button id="mainthub" class="btn" style="margin-top:14px">Back to hub</button></article>`;
+    document.querySelector('#mainthub').onclick=nc2Hub;
+    document.querySelectorAll('.maintopt').forEach(b=>b.onclick=()=>{if(Number(b.dataset.original)===x.correct){i++;show()}else{errors++;const m=document.querySelector('#maintmsg');m.style.display='block';m.innerHTML='<b class="warn">Maintenance decision rejected.</b><br>'+esc(x.why)+'<br><br>The drill will restart so the entire maintenance pattern is practiced.';document.querySelectorAll('.maintopt').forEach(z=>z.disabled=true);setTimeout(()=>{i=0;show()},1100)}})
+  };show();
+}
+function coc4MaintenanceResult(){
+  app.innerHTML=`<article class="card hero"><div class="ey ok">MAINTENANCE DRILL COMPLETE</div><h1>Preventive maintenance and repair decisions completed.</h1><p class="muted">Next, you must isolate faults from evidence rather than guessing or replacing parts by pattern.</p><div class="row"><button id="c4mainthub" class="btn">Back to hub</button><button id="tofault" class="btn primary">Continue to Fault Isolation</button></div></article>`;
+  document.querySelector('#c4mainthub').onclick=nc2Hub;document.querySelector('#tofault').onclick=coc4FaultDrill;
+}
+function coc4FaultDrill(){
+  if(!trainStateC4().maintenance_done)return coc4MaintenanceDrill();
+  const cases=shuffle([
+    {title:'No display after the PC was moved',evidence:'Monitor has power, correct input selected, display cable is secure, system fans spin, and POST behavior is abnormal.',answer:'Check POST indicators and isolate RAM/GPU seating before replacing major parts',repair:'Reseat/test the confirmed loose or failing component, then retest POST/display',wrong:['Reinstall Windows immediately','Replace the motherboard without component isolation']},
+    {title:'Intermittent LAN connection',evidence:'Link drops when the Ethernet cable is moved near the RJ45 plug; IP settings are correct when link is up.',answer:'Isolate the cable/connector using physical inspection and LAN testing',repair:'Re-terminate or replace the confirmed defective cable/connector, then verify stable link and communication',wrong:['Change the workstation IP every time link drops','Reinstall the server OS']},
+    {title:'CPU overheating and shutdown',evidence:'Temperature rises rapidly under load; CPU fan speed is abnormal and heatsink area is dusty.',answer:'Isolate the cooling path: fan operation, dust and heatsink contact',repair:'Correct the confirmed cooling defect, clean/reseat/replace as required, then stress-test temperatures',wrong:['Replace the network card','Format the storage drive']},
+    {title:'Slow PC with storage warnings',evidence:'Disk usage stays near 100%, freezes occur during file access, and drive-health monitoring reports warnings.',answer:'Protect important data and confirm storage failure with appropriate diagnostics',repair:'Replace the confirmed failing drive, restore/reinstall as required, then verify health and performance',wrong:['Disable the CPU fan warning','Change the Wi-Fi SSID']}
+  ]);
+  let i=0,phase='diagnose',errors=0,current=null;
+  const show=()=>{
+    if(i>=cases.length){setTrainC4({fault_done:true,fault_errors:errors});return coc4FaultResult()}
+    current=cases[i];
+    const correct=phase==='diagnose'?current.answer:current.repair;
+    const choices=shuffle([correct,...current.wrong]);
+    app.innerHTML=`<article class="card"><div class="row"><div><div class="ey">COC 4 · FAULT ISOLATION</div><b>Case ${i+1} of ${cases.length} · ${phase==='diagnose'?'Diagnosis':'Correction + verification'}</b></div><span class="pill">Evidence first</span></div></article>
+    <article class="card hero"><h2>${esc(current.title)}</h2><div class="notice"><b>Collected evidence:</b><br>${esc(current.evidence)}</div><h3>${phase==='diagnose'?'What is the strongest next diagnostic decision?':'What is the strongest corrective action?'}</h3><div class="quiz-options">${choices.map(o=>`<button class="btn faultopt" data-value="${esc(o)}">${esc(o)}</button>`).join('')}</div><div id="faultmsg" class="notice" style="display:none;margin-top:12px"></div><button id="faulthub" class="btn" style="margin-top:14px">Back to hub</button></article>`;
+    document.querySelector('#faulthub').onclick=nc2Hub;
+    document.querySelectorAll('.faultopt').forEach(b=>b.onclick=()=>{if(b.dataset.value===correct){if(phase==='diagnose'){phase='repair';show()}else{i++;phase='diagnose';show()}}else{errors++;const m=document.querySelector('#faultmsg');m.style.display='block';m.innerHTML='<b class="warn">Evidence does not support that action.</b><br>Use the symptom and observations to isolate the failing area before replacing unrelated parts. The case set will restart.';document.querySelectorAll('.faultopt').forEach(z=>z.disabled=true);setTimeout(()=>{i=0;phase='diagnose';show()},1200)}})
+  };show();
+}
+function coc4FaultResult(){
+  const mapped=catalog.filter(a=>COC_BY_SLUG[a.slug]===4),done=new Set(p?.completed||[]),passed=mapped.filter(a=>done.has(a.slug)).length;
+  app.innerHTML=`<article class="card hero"><div class="ey ok">ALL 4 COC DIGITAL PREPARATION PATHS COMPLETE</div><h1>COC 4 maintenance and fault-isolation workflow completed.</h1><p>You have now completed SkillLab’s current guided digital preparation path for all four CSS NC II core competencies. This does not replace hands-on performance or official TESDA competency assessment.</p>
+  <div class="notice" style="margin-top:14px"><b>COC 4 applied simulator evidence:</b> ${passed}/${mapped.length} mapped troubleshooting simulations passed at the class requirement.</div>
+  <div class="row" style="margin-top:14px"><button id="c4donehub" class="btn">Back to NC II hub</button><button id="c4mappedsim" class="btn primary">Continue mapped COC 4 simulator</button></div></article>`;
+  document.querySelector('#c4donehub').onclick=nc2Hub;
+  document.querySelector('#c4mappedsim').onclick=async()=>{const slug=mapped.find(a=>!done.has(a.slug))?.slug||mapped[0]?.slug||p?.next_slug;const x=await start(slug);if(x.error)return alert(x.error);render()};
 }
 let catalog=[],user=null,publicName='',name='',code='',p=null,sess=null,seen=[],logs=[],diag='',repair='',result=null,feedbackDone=false,lessonMode=false,liveEff=100;
 function stableName(){return `${publicName} · ${String(user.id).slice(0,8)}`.slice(0,80)}
