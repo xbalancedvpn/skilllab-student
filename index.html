@@ -147,6 +147,7 @@ function nc2Hub(){
   </div><div class="notice" style="margin-top:14px"><b>${!c4Unlocked?'Complete COC 3 digital preparation to unlock.':c4Done?'COC 4 digital preparation complete.':!c4.learn_done?'Current target: Finish Learn':!c4Practice?'Current target: Reach '+PASS+'% in Practice':!c4.maintenance_done?'Current target: Complete Maintenance Drill':'Current target: Complete Fault Isolation'}</b></div></article>
   </div>
 
+  <article class="card ${mockReady()?'':'locked'}"><div class="row"><div><div class="ey">FINAL STAGE · MOCK ASSESSMENT</div><b>Mixed COC readiness check</b></div><button id="startmock" class="btn ${mockReady()?'primary':''}" ${mockReady()?'':'disabled'}>Start Mock Assessment</button></div><p class="muted">${mockReady()?'Unlocked: 4/4 digital preparation and 10/10 scored simulations complete.':'Complete all four digital preparation paths and the 10/10 simulator bank to unlock.'}</p><p class="muted" style="margin-bottom:0">No hints during the run · mixed oral/knowledge questions · procedure decisions · saved attempt history.</p></article>
   <article class="card"><div class="row"><div><div class="ey">APPLIED SIMULATOR BANK</div><b>Existing SkillLab troubleshooting evidence</b></div><button id="resumeBank" class="btn">Resume simulator bank</button></div><p class="muted">${p?.completed?.length||0}/${catalog.length} scored simulations passed. COC 4 mapped simulations include No Display, No Boot Device, Overheating and Slow Storage scenarios.</p><p class="muted" style="margin-bottom:0">SkillLab readiness indicators are training evidence only; they are not official TESDA assessment results.</p></article>`;
   document.querySelector('#c1learn').onclick=coc1Learn;
   const pr=document.querySelector('#c1practice');if(pr)pr.onclick=coc1Practice;
@@ -163,6 +164,7 @@ function nc2Hub(){
   const c4p=document.querySelector('#c4practice');if(c4p)c4p.onclick=coc4Practice;
   const c4m=document.querySelector('#c4maint');if(c4m)c4m.onclick=coc4MaintenanceDrill;
   const c4f=document.querySelector('#c4fault');if(c4f)c4f.onclick=coc4FaultDrill;
+  const sm=document.querySelector('#startmock');if(sm)sm.onclick=startMockAssessment;
   document.querySelector('#resumeBank').onclick=resumeFoundation;
 }
 function coc1Learn(){
@@ -545,6 +547,69 @@ function coc4FaultResult(){
   <div class="row" style="margin-top:14px"><button id="c4donehub" class="btn">Back to NC II hub</button><button id="c4mappedsim" class="btn primary">Continue mapped COC 4 simulator</button></div></article>`;
   document.querySelector('#c4donehub').onclick=nc2Hub;
   document.querySelector('#c4mappedsim').onclick=async()=>{const slug=mapped.find(a=>!done.has(a.slug))?.slug||mapped[0]?.slug||p?.next_slug;const x=await start(slug);if(x.error)return alert(x.error);render()};
+}
+const MOCK_PROCEDURES=[
+{coc:1,q:'A desktop has been assembled and powers on. What is the strongest next step before declaring installation ready?',a:['Verify BIOS/UEFI, install/configure the required OS and drivers, then test against requirements','Install random applications first','Skip testing if POST succeeds'],c:0},
+{coc:1,q:'A newly installed device shows an error after OS setup. What should you do?',a:['Verify the correct driver and device operation using manufacturer/OS guidance','Ignore it if the desktop loads','Replace the motherboard immediately'],c:0},
+{coc:2,q:'A workstation cannot reach its gateway. What is the best troubleshooting order?',a:['Check link/NIC, verify IP/subnet/gateway, then test reachability logically','Reinstall the OS first','Change the SSID before checking Ethernet'],c:0},
+{coc:2,q:'A new cable was terminated but connectivity is intermittent. What is the strongest next action?',a:['Inspect termination and verify with a LAN tester before changing IP settings','Change the DNS server','Replace the switch immediately'],c:0},
+{coc:3,q:'A department needs a shared folder that only its staff can modify. What is the strongest server-side approach?',a:['Create the resource and apply least-privilege group/user permissions, then verify from a client','Give all users server administrator rights','Use one shared administrator account'],c:0},
+{coc:3,q:'A server role appears installed but users still cannot access it. What should you do next?',a:['Verify server health, service operation, access configuration and client connectivity','Assume installation means it works','Disable authentication'],c:0},
+{coc:4,q:'A PC has no display after being moved. Fans spin and power is present. What is the strongest next diagnostic action?',a:['Collect POST/display evidence and isolate seating/component issues before replacement','Reinstall Windows immediately','Replace every major component'],c:0},
+{coc:4,q:'A drive shows health warnings and causes freezes. What is the best corrective sequence?',a:['Protect data, confirm the storage fault, replace the failing drive, then verify operation','Format immediately before checking health','Replace the NIC first'],c:0}
+];
+function mockReady(){
+  return coc1Ready()&&coc2Ready()&&coc3Ready()&&coc4Ready()&&!!p?.finished_all;
+}
+async function mockHistory(){
+  if(!user?.id||!p?.class_id)return[];
+  const {data,error}=await sb.from('nc2_mock_attempts').select('score,oral_score,procedure_score,target_score,target_met,duration_seconds,created_at').eq('class_id',p.class_id).eq('user_id',user.id).order('created_at',{ascending:false}).limit(5);
+  if(error){console.warn('Mock history failed',error);return[]}
+  return data||[];
+}
+async function startMockAssessment(){
+  if(!mockReady())return nc2Hub();
+  const started=Date.now();
+  const oralPool=shuffle([
+    ...COC1_QUIZ.map(x=>({...x,coc:1})),
+    ...COC2_QUIZ.map(x=>({...x,coc:2})),
+    ...COC3_QUIZ.map(x=>({...x,coc:3})),
+    ...COC4_QUIZ.map(x=>({...x,coc:4}))
+  ]);
+  const byCoc=[1,2,3,4].flatMap(c=>oralPool.filter(x=>x.coc===c).slice(0,3));
+  const oral=shuffle(byCoc).slice(0,12);
+  const procedures=shuffle(MOCK_PROCEDURES).slice(0,6);
+  let phase='oral',i=0,oralCorrect=0,procCorrect=0,locked=false;
+  const target=Math.max(75,Math.min(100,PASS));
+  const showOral=()=>{
+    if(i>=oral.length){phase='procedure';i=0;return showProcedure()}
+    const x=oral[i],choices=shuffle(x.a.map((label,original)=>({label,original})));
+    app.innerHTML=`<article class="card"><div class="row"><div><div class="ey">MOCK ASSESSMENT · ORAL/KNOWLEDGE</div><b>Question ${i+1} of ${oral.length}</b></div><span class="pill">No hints</span></div><div class="progress" style="margin-top:12px"><span style="width:${Math.round(i/oral.length*100)}%"></span></div></article>
+    <article class="card hero"><div class="ey">COC ${x.coc}</div><h2>${esc(x.q)}</h2><div class="quiz-options">${choices.map(c=>`<button class="btn mockopt" data-original="${c.original}">${esc(c.label)}</button>`).join('')}</div><div class="row" style="margin-top:14px"><button id="mockquit" class="btn">Exit mock</button><button id="mocknext" class="btn primary" disabled>Next</button></div></article>`;
+    document.querySelector('#mockquit').onclick=nc2Hub;
+    document.querySelectorAll('.mockopt').forEach(b=>b.onclick=()=>{if(locked)return;locked=true;if(Number(b.dataset.original)===x.c)oralCorrect++;document.querySelectorAll('.mockopt').forEach(z=>z.disabled=true);document.querySelector('#mocknext').disabled=false});
+    document.querySelector('#mocknext').onclick=()=>{i++;locked=false;showOral()};
+  };
+  const showProcedure=()=>{
+    if(i>=procedures.length)return finishMock();
+    const x=procedures[i],choices=shuffle(x.a.map((label,original)=>({label,original})));
+    app.innerHTML=`<article class="card"><div class="row"><div><div class="ey">MOCK ASSESSMENT · PROCEDURE DECISION</div><b>Scenario ${i+1} of ${procedures.length}</b></div><span class="pill">COC ${x.coc}</span></div><div class="progress" style="margin-top:12px"><span style="width:${Math.round(i/procedures.length*100)}%"></span></div></article>
+    <article class="card hero"><h2>${esc(x.q)}</h2><p class="muted">Choose the strongest action. No explanation is shown until the mock ends.</p><div class="quiz-options">${choices.map(c=>`<button class="btn mockproc" data-original="${c.original}">${esc(c.label)}</button>`).join('')}</div><div class="row" style="margin-top:14px"><button id="mockquit2" class="btn">Exit mock</button><button id="mocknext2" class="btn primary" disabled>${i===procedures.length-1?'Submit mock':'Next'}</button></div></article>`;
+    document.querySelector('#mockquit2').onclick=nc2Hub;
+    document.querySelectorAll('.mockproc').forEach(b=>b.onclick=()=>{if(locked)return;locked=true;if(Number(b.dataset.original)===x.c)procCorrect++;document.querySelectorAll('.mockproc').forEach(z=>z.disabled=true);document.querySelector('#mocknext2').disabled=false});
+    document.querySelector('#mocknext2').onclick=()=>{i++;locked=false;showProcedure()};
+  };
+  const finishMock=async()=>{
+    const oralScore=Math.round(oralCorrect/oral.length*100),procedureScore=Math.round(procCorrect/procedures.length*100),score=Math.round(oralScore*.4+procedureScore*.6),duration=Math.max(1,Math.round((Date.now()-started)/1000)),targetMet=score>=target;
+    const breakdown={oral_correct:oralCorrect,oral_total:oral.length,procedure_correct:procCorrect,procedure_total:procedures.length,weighting:'oral40_procedure60'};
+    const {error}=await sb.from('nc2_mock_attempts').insert({class_id:p.class_id,user_id:user.id,score,oral_score:oralScore,procedure_score:procedureScore,target_score:target,target_met:targetMet,breakdown,duration_seconds:duration});
+    if(error)console.warn('Mock save failed',error);
+    const history=await mockHistory();
+    app.innerHTML=`<article class="card hero"><div class="ey ${targetMet?'ok':'warn'}">MOCK ASSESSMENT RESULT</div><div class="score ${targetMet?'pass':'fail'}">${score}%</div><h1>${targetMet?'Readiness target reached':'More preparation recommended'}</h1><p class="muted">Internal SkillLab readiness target: ${target}% · Oral/knowledge ${oralScore}% · Procedure decisions ${procedureScore}% · Time ${Math.floor(duration/60)}m ${duration%60}s</p><div class="notice" style="margin-top:14px"><b>Important:</b> This is a SkillLab mock-readiness result only. It is not an official TESDA assessment, certificate, or competency result.</div><div class="row" style="margin-top:14px"><button id="mockhub" class="btn">Back to hub</button><button id="mockagain" class="btn primary">Take another mock</button></div></article>
+    <article class="card"><div class="ey">RECENT MOCK ATTEMPTS</div>${history.length?`<div class="table"><table><thead><tr><th>Date</th><th>Overall</th><th>Oral</th><th>Procedure</th><th>Target</th></tr></thead><tbody>${history.map(h=>`<tr><td>${new Date(h.created_at).toLocaleString('en-PH')}</td><td class="${h.target_met?'ok':'warn'}"><b>${h.score}%</b></td><td>${h.oral_score}%</td><td>${h.procedure_score}%</td><td>${h.target_met?'Reached':'Not reached'}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">No saved mock attempts yet.</p>'}</article>`;
+    document.querySelector('#mockhub').onclick=nc2Hub;document.querySelector('#mockagain').onclick=startMockAssessment;
+  };
+  showOral();
 }
 let catalog=[],user=null,publicName='',name='',code='',p=null,sess=null,seen=[],logs=[],diag='',repair='',result=null,feedbackDone=false,lessonMode=false,liveEff=100;
 function stableName(){return `${publicName} · ${String(user.id).slice(0,8)}`.slice(0,80)}
