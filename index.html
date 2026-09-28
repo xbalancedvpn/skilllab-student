@@ -69,9 +69,40 @@ const COC1_QUIZ=[
 {q:'A client only needs office productivity software and a browser. What should the technician do?',a:['Install every application on the USB','Install the required licensed applications that meet the client requirement','Install games first','Skip all application updates'],c:1,why:'Software selection should follow the customer/end-user requirement and license conditions.'}
 ];
 const shuffle=a=>a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
+async function syncReadiness(coc,state){
+  if(!user?.id||!p?.class_id)return;
+  const map={
+    1:{learn_done:!!state.learn_done,practice_best:Number(state.practice_best||0),drill_1_done:!!state.procedure_done,drill_2_done:false},
+    2:{learn_done:!!state.learn_done,practice_best:Number(state.practice_best||0),drill_1_done:!!state.cable_done,drill_2_done:!!state.network_done},
+    3:{learn_done:!!state.learn_done,practice_best:Number(state.practice_best||0),drill_1_done:!!state.access_done,drill_2_done:!!state.services_done},
+    4:{learn_done:!!state.learn_done,practice_best:Number(state.practice_best||0),drill_1_done:!!state.maintenance_done,drill_2_done:!!state.fault_done}
+  };
+  const row=map[coc];if(!row)return;
+  const {error}=await sb.from('nc2_readiness_progress').upsert({
+    class_id:p.class_id,user_id:user.id,coc,...row,updated_at:new Date().toISOString()
+  },{onConflict:'class_id,user_id,coc'});
+  if(error)console.warn('Readiness sync failed',coc,error);
+}
+function localMerge(coc,row){
+  const getters=[trainState,trainStateC2,trainStateC3,trainStateC4],keys=[trainKey,trainKeyC2,trainKeyC3,trainKeyC4];
+  const cur=getters[coc-1]();
+  const merged={...cur,learn_done:!!(cur.learn_done||row?.learn_done),practice_best:Math.max(Number(cur.practice_best||0),Number(row?.practice_best||0)),updated_at:new Date().toISOString()};
+  if(coc===1)merged.procedure_done=!!(cur.procedure_done||row?.drill_1_done);
+  if(coc===2){merged.cable_done=!!(cur.cable_done||row?.drill_1_done);merged.network_done=!!(cur.network_done||row?.drill_2_done)}
+  if(coc===3){merged.access_done=!!(cur.access_done||row?.drill_1_done);merged.services_done=!!(cur.services_done||row?.drill_2_done)}
+  if(coc===4){merged.maintenance_done=!!(cur.maintenance_done||row?.drill_1_done);merged.fault_done=!!(cur.fault_done||row?.drill_2_done)}
+  localStorage.setItem(keys[coc-1](),JSON.stringify(merged));return merged;
+}
+async function hydrateReadiness(){
+  if(!user?.id||!p?.class_id)return;
+  const {data,error}=await sb.from('nc2_readiness_progress').select('coc,learn_done,practice_best,drill_1_done,drill_2_done').eq('class_id',p.class_id).eq('user_id',user.id);
+  if(error){console.warn('Readiness restore failed',error);return}
+  const by=new Map((data||[]).map(r=>[Number(r.coc),r]));
+  for(let coc=1;coc<=4;coc++){const merged=localMerge(coc,by.get(coc)||null);await syncReadiness(coc,merged)}
+}
 function trainKey(){return 'skilllab-nc2-v1:'+String(user?.id||'guest')+':'+String(p?.class_id||code||'class')+':coc1'}
 function trainState(){try{return JSON.parse(localStorage.getItem(trainKey())||'{}')}catch{return{}}}
-function setTrain(patch){const v={...trainState(),...patch,updated_at:new Date().toISOString()};localStorage.setItem(trainKey(),JSON.stringify(v));return v}
+function setTrain(patch){const v={...trainState(),...patch,updated_at:new Date().toISOString()};localStorage.setItem(trainKey(),JSON.stringify(v));syncReadiness(1,v);return v}
 function coc1Pct(st=trainState()){return Math.round(((st.learn_done?1:0)+(Number(st.practice_best||0)>=PASS?1:0)+(st.procedure_done?1:0))/3*100)}
 function resumeFoundation(){if(p?.finished_all)return completeScreen();start(p?.next_slug).then(x=>{if(x?.error)return alert(x.error);render()})}
 function nc2Hub(){
@@ -206,7 +237,7 @@ const T568A=['White/Green','Green','White/Orange','Blue','White/Blue','Orange','
 const T568B=['White/Orange','Orange','White/Green','Blue','White/Blue','Green','White/Brown','Brown'];
 function trainKeyC2(){return 'skilllab-nc2-v1:'+String(user?.id||'guest')+':'+String(p?.class_id||code||'class')+':coc2'}
 function trainStateC2(){try{return JSON.parse(localStorage.getItem(trainKeyC2())||'{}')}catch{return{}}}
-function setTrainC2(patch){const v={...trainStateC2(),...patch,updated_at:new Date().toISOString()};localStorage.setItem(trainKeyC2(),JSON.stringify(v));return v}
+function setTrainC2(patch){const v={...trainStateC2(),...patch,updated_at:new Date().toISOString()};localStorage.setItem(trainKeyC2(),JSON.stringify(v));syncReadiness(2,v);return v}
 function coc2Pct(st=trainStateC2()){return Math.round(((st.learn_done?1:0)+(Number(st.practice_best||0)>=PASS?1:0)+(st.cable_done?1:0)+(st.network_done?1:0))/4*100)}
 function coc1Ready(){const st=trainState();return !!(st.learn_done&&Number(st.practice_best||0)>=PASS&&st.procedure_done)}
 function coc2Ready(){const st=trainStateC2();return !!(st.learn_done&&Number(st.practice_best||0)>=PASS&&st.cable_done&&st.network_done)}
@@ -316,7 +347,7 @@ const COC3_QUIZ=[
 ];
 function trainKeyC3(){return 'skilllab-nc2-v1:'+String(user?.id||'guest')+':'+String(p?.class_id||code||'class')+':coc3'}
 function trainStateC3(){try{return JSON.parse(localStorage.getItem(trainKeyC3())||'{}')}catch{return{}}}
-function setTrainC3(patch){const v={...trainStateC3(),...patch,updated_at:new Date().toISOString()};localStorage.setItem(trainKeyC3(),JSON.stringify(v));return v}
+function setTrainC3(patch){const v={...trainStateC3(),...patch,updated_at:new Date().toISOString()};localStorage.setItem(trainKeyC3(),JSON.stringify(v));syncReadiness(3,v);return v}
 function coc3Pct(st=trainStateC3()){return Math.round(((st.learn_done?1:0)+(Number(st.practice_best||0)>=PASS?1:0)+(st.access_done?1:0)+(st.services_done?1:0))/4*100)}
 function coc3Ready(){const st=trainStateC3();return !!(st.learn_done&&Number(st.practice_best||0)>=PASS&&st.access_done&&st.services_done)}
 function coc3Learn(){
@@ -434,7 +465,7 @@ const COC4_QUIZ=[
 ];
 function trainKeyC4(){return 'skilllab-nc2-v1:'+String(user?.id||'guest')+':'+String(p?.class_id||code||'class')+':coc4'}
 function trainStateC4(){try{return JSON.parse(localStorage.getItem(trainKeyC4())||'{}')}catch{return{}}}
-function setTrainC4(patch){const v={...trainStateC4(),...patch,updated_at:new Date().toISOString()};localStorage.setItem(trainKeyC4(),JSON.stringify(v));return v}
+function setTrainC4(patch){const v={...trainStateC4(),...patch,updated_at:new Date().toISOString()};localStorage.setItem(trainKeyC4(),JSON.stringify(v));syncReadiness(4,v);return v}
 function coc4Pct(st=trainStateC4()){return Math.round(((st.learn_done?1:0)+(Number(st.practice_best||0)>=PASS?1:0)+(st.maintenance_done?1:0)+(st.fault_done?1:0))/4*100)}
 function coc4Ready(){const st=trainStateC4();return !!(st.learn_done&&Number(st.practice_best||0)>=PASS&&st.maintenance_done&&st.fault_done)}
 function coc4Learn(){
@@ -520,7 +551,7 @@ function stableName(){return `${publicName} · ${String(user.id).slice(0,8)}`.sl
 async function loadCatalog(){const x=await api({action:'catalog'});catalog=x.activities||[]}
 function authScreen(mode='signin',notice=''){signout.hidden=true;const signup=mode==='signup';app.innerHTML=`<div class="grid g2"><article class="card hero"><div class="ey ok">STUDENT ACCOUNT</div><h1>${signup?'Create your SkillLab account':'Sign in to SkillLab'}</h1><p class="muted">Your account keeps your simulator progress separate even when another student has the same name.</p></article><form id="auth" class="card form">${signup?'<label>Full name<input id="full" maxlength="64" autocapitalize="characters" style="text-transform:uppercase" required></label>':''}<label>Email<input id="email" type="email" autocomplete="username" required></label><label>Password<input id="pw" type="password" minlength="6" autocomplete="${signup?'new-password':'current-password'}" required></label><div id="msg" class="muted">${esc(notice)}</div><button class="btn primary">${signup?'Create account':'Sign in'}</button><button type="button" id="switch" class="btn">${signup?'I already have an account':'Create student account'}</button></form></div>`;document.querySelector('#switch').onclick=()=>authScreen(signup?'signin':'signup');document.querySelector('#auth').onsubmit=async e=>{e.preventDefault();const m=document.querySelector('#msg');m.innerHTML='<span class="spin"></span>Please wait…';const email=document.querySelector('#email').value.trim(),password=document.querySelector('#pw').value;if(signup){const full=document.querySelector('#full').value.trim().replace(/\s+/g,' ').toUpperCase();const{data,error}=await sb.auth.signUp({email,password,options:{data:{full_name:full},emailRedirectTo:'https://student.skilllab.xbalanced.net'}});if(error){m.innerHTML='<span class="bad">'+esc(error.message)+'</span>';return}if(!data.session){authScreen('signin','Account created. Check your email to confirm your account, then sign in.');return}}else{const{error}=await sb.auth.signInWithPassword({email,password});if(error){m.innerHTML='<span class="bad">'+esc(error.message)+'</span>';return}}await boot()}}
 async function boot(){const{data:{session}}=await sb.auth.getSession();if(!session){authScreen();return}user=session.user;publicName=String(user.user_metadata?.full_name||user.email?.split('@')[0]||'Student').trim().replace(/\s+/g,' ');name=stableName();signout.hidden=false;await loadCatalog();classScreen()}
-function classScreen(){const pref=new URLSearchParams(location.search).get('class')||'';app.innerHTML=`<article class="card hero"><div class="ey">WELCOME, ${esc(publicName)}</div><h1>Build your CSS NC II readiness one competency at a time.</h1><p class="muted">SkillLab now organizes your training around the four TESDA CSS NC II core competencies. Pass each simulator to build foundation evidence; failed attempts open a short remediation lesson before retake.</p></article><form id="go" class="card form"><label>Class code<input id="code" value="${esc(pref)}" maxlength="8" required></label><div id="msg" class="muted">Your progress is linked to your account.</div><button class="btn primary">Start / Resume</button></form>`;document.querySelector('#go').onsubmit=async e=>{e.preventDefault();code=document.querySelector('#code').value.trim().toUpperCase();const m=document.querySelector('#msg');m.innerHTML='<span class="spin"></span>Checking progress…';p=await prog(name,code);if(p.error){m.innerHTML='<span class="bad">'+esc(p.error)+'</span>';return}PASS=Number(p.pass_score||90);passlabel.textContent='Pass score: '+PASS+'/100';if(p.class_id){const{data:existing,error:memberReadError}=await sb.from('class_members').select('user_id,student_name').eq('class_id',p.class_id).eq('user_id',user.id).maybeSingle();if(memberReadError)console.warn('Class roster lookup failed',memberReadError);else if(existing){if(existing.student_name!==name){const{error:memberUpdateError}=await sb.from('class_members').update({student_name:name}).eq('class_id',p.class_id).eq('user_id',user.id);if(memberUpdateError)console.warn('Class roster update failed',memberUpdateError)}}else{const{error:memberInsertError}=await sb.from('class_members').insert({class_id:p.class_id,user_id:user.id,student_name:name});if(memberInsertError)console.warn('Class roster insert failed',memberInsertError)}}if(p.finished_all)return nc2Hub();nc2Hub()}}
+function classScreen(){const pref=new URLSearchParams(location.search).get('class')||'';app.innerHTML=`<article class="card hero"><div class="ey">WELCOME, ${esc(publicName)}</div><h1>Build your CSS NC II readiness one competency at a time.</h1><p class="muted">SkillLab now organizes your training around the four TESDA CSS NC II core competencies. Pass each simulator to build foundation evidence; failed attempts open a short remediation lesson before retake.</p></article><form id="go" class="card form"><label>Class code<input id="code" value="${esc(pref)}" maxlength="8" required></label><div id="msg" class="muted">Your progress is linked to your account.</div><button class="btn primary">Start / Resume</button></form>`;document.querySelector('#go').onsubmit=async e=>{e.preventDefault();code=document.querySelector('#code').value.trim().toUpperCase();const m=document.querySelector('#msg');m.innerHTML='<span class="spin"></span>Checking progress…';p=await prog(name,code);if(p.error){m.innerHTML='<span class="bad">'+esc(p.error)+'</span>';return}PASS=Number(p.pass_score||90);passlabel.textContent='Pass score: '+PASS+'/100';if(p.class_id){const{data:existing,error:memberReadError}=await sb.from('class_members').select('user_id,student_name').eq('class_id',p.class_id).eq('user_id',user.id).maybeSingle();if(memberReadError)console.warn('Class roster lookup failed',memberReadError);else if(existing){if(existing.student_name!==name){const{error:memberUpdateError}=await sb.from('class_members').update({student_name:name}).eq('class_id',p.class_id).eq('user_id',user.id);if(memberUpdateError)console.warn('Class roster update failed',memberUpdateError)}}else{const{error:memberInsertError}=await sb.from('class_members').insert({class_id:p.class_id,user_id:user.id,student_name:name});if(memberInsertError)console.warn('Class roster insert failed',memberInsertError)}}await hydrateReadiness();if(p.finished_all)return nc2Hub();nc2Hub()}}
 async function start(slug){const x=await api({action:'join',student_name:name,class_code:code,activity_slug:slug});if(x.error)return x;PASS=Number(x.pass_score||PASS||90);passlabel.textContent='Pass score: '+PASS+'/100';sess=x;seen=[];logs=[x.intro];diag='';repair='';result=null;feedbackDone=false;lessonMode=false;liveEff=100;return x}
 async function refresh(){p=await prog(name,code);if(!p.error){PASS=Number(p.pass_score||PASS||90);passlabel.textContent='Pass score: '+PASS+'/100'}return p}
 function idx(slug){return Math.max(0,catalog.findIndex(a=>a.slug===slug))}
