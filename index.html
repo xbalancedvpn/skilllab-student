@@ -77,7 +77,8 @@ function resumeFoundation(){if(p?.finished_all)return completeScreen();start(p?.
 function nc2Hub(){
   const st=trainState(),practicePassed=Number(st.practice_best||0)>=PASS,ready=st.learn_done&&practicePassed&&st.procedure_done;
   const c2=trainStateC2(),c2Practice=Number(c2.practice_best||0)>=PASS,c2Unlocked=ready,c2Done=c2Unlocked&&c2.learn_done&&c2Practice&&c2.cable_done&&c2.network_done;
-  app.innerHTML=`<article class="card hero"><div class="ey ok">CSS NC II READINESS HUB</div><h1>Train by competency, not by memorizing answers.</h1><p class="muted">Each COC uses a guided review, randomized practice and procedure-based drills before the scored simulator bank.</p></article>
+  const c3=trainStateC3(),c3Practice=Number(c3.practice_best||0)>=PASS,c3Unlocked=c2Done,c3Done=c3Unlocked&&c3.learn_done&&c3Practice&&c3.access_done&&c3.services_done;
+  app.innerHTML=`<article class="card hero"><div class="ey ok">CSS NC II READINESS HUB</div><h1>Train by competency, not by memorizing answers.</h1><p class="muted">Each COC uses guided review, randomized practice and procedure-based drills before the scored simulator bank.</p></article>
   <div class="grid g2">
   <article class="card"><div class="row"><div><div class="ey">COC 1 · ELC724331</div><h2 style="margin:4px 0">Install and Configure Computer Systems</h2></div><div class="readiness-ring">${coc1Pct(st)}%</div></div>
   <div class="training-path" style="margin-top:14px">
@@ -94,7 +95,16 @@ function nc2Hub(){
     <div class="training-step ${c2.network_done?'done':c2.cable_done?'':'locked'}"><div class="num">4</div><b>NETWORK DRILL</b><div class="stage-note">${c2.network_done?'Completed':'IP setup + logical connectivity validation.'}</div><button id="c2network" class="btn ${c2.cable_done?'primary':''}" style="margin-top:10px;width:100%" ${c2.cable_done?'':'disabled'}>${c2.network_done?'Run again':'Start Network Drill'}</button></div>
   </div><div class="notice" style="margin-top:14px"><b>${!c2Unlocked?'Complete COC 1 digital preparation to unlock.':c2Done?'COC 2 digital preparation complete.':!c2.learn_done?'Current target: Finish Learn':!c2Practice?'Current target: Reach '+PASS+'% in Practice':!c2.cable_done?'Current target: Complete Cable Drill':'Current target: Complete Network Drill'}</b></div></article>
   </div>
-  <div class="grid g2"><article class="card"><div class="ey">UP NEXT</div>${COCS.slice(2).map(c=>`<div class="lesson-block hub-coc next" style="margin-top:9px"><b>${c.short} · ${esc(c.title)}</b><div class="stage-note">Will unlock as the structured NC II path expands.</div></div>`).join('')}</article>
+
+  <article class="card ${c3Unlocked?'':'locked'}"><div class="row"><div><div class="ey">COC 3 · ELC724333</div><h2 style="margin:4px 0">Set-up Computer Servers</h2></div><div class="readiness-ring">${c3Unlocked?coc3Pct(c3):0}%</div></div>
+  <div class="training-path" style="margin-top:14px;grid-template-columns:repeat(4,1fr)">
+    <div class="training-step ${c3.learn_done?'done':c3Unlocked?'':'locked'}"><div class="num">1</div><b>LEARN</b><div class="stage-note">User access, services, pre-deployment.</div><button id="c3learn" class="btn ${c3Unlocked&&!c3.learn_done?'primary':''}" style="margin-top:10px;width:100%" ${c3Unlocked?'':'disabled'}>${c3.learn_done?'Review again':'Start Learn'}</button></div>
+    <div class="training-step ${c3Practice?'done':c3.learn_done?'':'locked'}"><div class="num">2</div><b>PRACTICE</b><div class="stage-note">${c3.practice_best!=null?'Best: '+c3.practice_best+'% · pass '+PASS+'%':'Randomized server questions.'}</div><button id="c3practice" class="btn ${c3.learn_done?'primary':''}" style="margin-top:10px;width:100%" ${c3.learn_done?'':'disabled'}>${c3Practice?'Practice again':'Start Practice'}</button></div>
+    <div class="training-step ${c3.access_done?'done':c3Practice?'':'locked'}"><div class="num">3</div><b>USER ACCESS</b><div class="stage-note">${c3.access_done?'Completed':'Folders, permissions and security checks.'}</div><button id="c3access" class="btn ${c3Practice?'primary':''}" style="margin-top:10px;width:100%" ${c3Practice?'':'disabled'}>${c3.access_done?'Run again':'Start Access Drill'}</button></div>
+    <div class="training-step ${c3.services_done?'done':c3.access_done?'':'locked'}"><div class="num">4</div><b>SERVICES</b><div class="stage-note">${c3.services_done?'Completed':'Role selection + pre-deployment workflow.'}</div><button id="c3services" class="btn ${c3.access_done?'primary':''}" style="margin-top:10px;width:100%" ${c3.access_done?'':'disabled'}>${c3.services_done?'Run again':'Start Services Drill'}</button></div>
+  </div><div class="notice" style="margin-top:14px"><b>${!c3Unlocked?'Complete COC 2 digital preparation to unlock.':c3Done?'COC 3 digital preparation complete.':!c3.learn_done?'Current target: Finish Learn':!c3Practice?'Current target: Reach '+PASS+'% in Practice':!c3.access_done?'Current target: Complete User Access Drill':'Current target: Complete Services Drill'}</b></div></article>
+
+  <div class="grid g2"><article class="card"><div class="ey">UP NEXT</div><div class="lesson-block hub-coc next" style="margin-top:9px"><b>COC 4 · Maintain and Repair Computer Systems and Networks</b><div class="stage-note">${c3Done?'Ready for the next build phase.':'Unlocks after COC 3 digital preparation.'}</div></div></article>
   <article class="card"><div class="ey">EXISTING SIMULATOR BANK</div><p class="muted">Your original scored simulations and stored attempts remain available.</p><div class="row"><b>${p?.completed?.length||0}/${catalog.length} passed</b><button id="resumeBank" class="btn">Resume simulator bank</button></div><p class="muted" style="margin-bottom:0">SkillLab readiness indicators are training evidence only; they are not official TESDA assessment results.</p></article></div>`;
   document.querySelector('#c1learn').onclick=coc1Learn;
   const pr=document.querySelector('#c1practice');if(pr)pr.onclick=coc1Practice;
@@ -103,6 +113,10 @@ function nc2Hub(){
   const c2p=document.querySelector('#c2practice');if(c2p)c2p.onclick=coc2Practice;
   const c2c=document.querySelector('#c2cable');if(c2c)c2c.onclick=coc2CableDrill;
   const c2n=document.querySelector('#c2network');if(c2n)c2n.onclick=coc2NetworkDrill;
+  const c3l=document.querySelector('#c3learn');if(c3l)c3l.onclick=coc3Learn;
+  const c3p=document.querySelector('#c3practice');if(c3p)c3p.onclick=coc3Practice;
+  const c3a=document.querySelector('#c3access');if(c3a)c3a.onclick=coc3AccessDrill;
+  const c3s=document.querySelector('#c3services');if(c3s)c3s.onclick=coc3ServicesDrill;
   document.querySelector('#resumeBank').onclick=resumeFoundation;
 }
 function coc1Learn(){
@@ -265,6 +279,122 @@ function coc2NetworkResult(){
   app.innerHTML=`<article class="card hero"><div class="ey ok">COC 2 DIGITAL PREPARATION COMPLETE</div><h1>Cabling, addressing and connectivity workflow completed.</h1><p>You completed the current SkillLab digital path for COC 2. Physical cable fabrication, router/AP configuration on real equipment and assessor-observed testing still need hands-on evidence.</p><div class="row"><button id="c2donehub" class="btn">Back to NC II hub</button><button id="c2netsims" class="btn primary">Open mapped network simulator</button></div></article>`;
   document.querySelector('#c2donehub').onclick=nc2Hub;
   document.querySelector('#c2netsims').onclick=async()=>{const slug=catalog.find(a=>COC_BY_SLUG[a.slug]===2&&!new Set(p?.completed||[]).has(a.slug))?.slug||catalog.find(a=>COC_BY_SLUG[a.slug]===2)?.slug||p?.next_slug;const x=await start(slug);if(x.error)return alert(x.error);render()};
+}
+const COC3_LESSON=[
+{n:1,title:'Set-up user access',points:['Create user folders using the features of the network operating system.','Configure access levels according to established access policies and end-user requirements.','Perform a security check after creating or changing access.','Use the least privilege needed for the user’s actual work.'],check:'A folder that exists but has the wrong permissions is not a completed user-access setup.'},
+{n:2,title:'Configure network services',points:['Check normal server functions first, including successful boot and network connectivity.','Install or update required server modules/add-ons using the NOS procedure.','Confirm which network service is required from the user/system requirement before configuring it.','Check that the configured service actually operates as required.','Respond to unexpected conditions using an established troubleshooting procedure.'],check:'Choose the service from the requirement; do not enable server roles just because they are available.'},
+{n:3,title:'Testing, documentation and pre-deployment',points:['Complete pre-deployment work according to enterprise procedure.','Perform operation and security checks using the end-user requirement as the acceptance criteria.','Verify access to required shared resources or services from a client system.','Prepare and complete the required report before deployment.'],check:'A service running on the server is not enough; client-side access, security and documentation must also be verified.'}
+];
+const COC3_QUIZ=[
+{q:'What should determine a user’s access level on the server?',a:['Their favorite application','Network access policy and end-user requirement','The age of the computer','The monitor resolution'],c:1,why:'Access levels are based on the established policy and the work the user must perform.'},
+{q:'Which principle is safest when assigning server permissions?',a:['Give all users administrator access','Grant only the access required for the task','Use one shared account for everyone','Disable all authentication'],c:1,why:'Least privilege reduces accidental or unauthorized access while still allowing required work.'},
+{q:'After creating a user folder and permissions, what should follow?',a:['A security/access check','Immediate server shutdown','Delete the user account','Change the router SSID'],c:0,why:'COC 3 specifically requires a security check based on policy/end-user requirements.'},
+{q:'Before adding a new server role or service, what should the technician confirm?',a:['The keyboard brand','The user/system requirement for that service','The desktop wallpaper','The USB cable color'],c:1,why:'Network services should be selected from the actual requirement.'},
+{q:'Which server condition should be checked before configuring services?',a:['Normal boot and network connectivity','Screen saver timing only','Speaker volume','Printer paper size only'],c:0,why:'Normal server functions include a clean boot sequence and network connectivity.'},
+{q:'Which service best fits centralized user logon and policy management?',a:['Domain controller','Web service','Proxy only','Print queue only'],c:0,why:'A domain controller provides centralized identity/authentication functions in a domain environment.'},
+{q:'Which service best fits hosting an internal company website?',a:['Web service','Printer sharing','Remote desktop only','File compression'],c:0,why:'A web service/server role hosts web content or web applications.'},
+{q:'Which service best fits a team that needs centralized shared folders and printers?',a:['File/printer resource sharing','BIOS update service','Display service','Audio mixing service'],c:0,why:'File, printer and resource sharing are explicitly included in the server-service range.'},
+{q:'Which service is appropriate when authorized users need to access a server remotely?',a:['Remote access service','Monitor calibration','Disk defragmentation only','USB formatting'],c:0,why:'Remote access is one of the listed network-service types.'},
+{q:'After configuring a service, what proves it is useful?',a:['The role appears in the server console','Its operation is checked against the user/system requirement','The server has more icons','The service was installed quickly'],c:1,why:'Operation must be checked against the requirement, not just installation status.'},
+{q:'What should happen when an unexpected service problem occurs?',a:['Change random settings until it works','Follow the established troubleshooting/response procedure','Ignore the event','Give every user administrator access'],c:1,why:'Unplanned events or conditions should be handled using established procedures.'},
+{q:'What belongs in the final pre-deployment evidence?',a:['Operation/security checks and completed reports','Only a screenshot of the desktop','Only the server hostname','Only the administrator password'],c:0,why:'COC 3 includes testing, operation/security checks and documentation before deployment.'}
+];
+function trainKeyC3(){return 'skilllab-nc2-v1:'+String(user?.id||'guest')+':'+String(p?.class_id||code||'class')+':coc3'}
+function trainStateC3(){try{return JSON.parse(localStorage.getItem(trainKeyC3())||'{}')}catch{return{}}}
+function setTrainC3(patch){const v={...trainStateC3(),...patch,updated_at:new Date().toISOString()};localStorage.setItem(trainKeyC3(),JSON.stringify(v));return v}
+function coc3Pct(st=trainStateC3()){return Math.round(((st.learn_done?1:0)+(Number(st.practice_best||0)>=PASS?1:0)+(st.access_done?1:0)+(st.services_done?1:0))/4*100)}
+function coc3Ready(){const st=trainStateC3();return !!(st.learn_done&&Number(st.practice_best||0)>=PASS&&st.access_done&&st.services_done)}
+function coc3Learn(){
+  if(!coc2Ready())return nc2Hub();
+  app.innerHTML=`<article class="card hero"><div class="ey">COC 3 · LEARN</div><h1>Set-up Computer Servers</h1><p class="muted">Think like a server technician: user access first, required services second, then test/security/documentation before deployment.</p></article>
+  <article class="card"><div class="grid">${COC3_LESSON.map(x=>`<div class="lesson-block"><div class="ey">ELEMENT ${x.n}</div><h3>${esc(x.title)}</h3><ul>${x.points.map(y=>`<li>${esc(y)}</li>`).join('')}</ul><div class="notice" style="margin-top:10px"><b>Checkpoint:</b> ${esc(x.check)}</div></div>`).join('')}</div></article>
+  <article class="card"><div class="row"><button id="c3backhub" class="btn">Back to hub</button><button id="c3donelearn" class="btn primary">I finished the COC 3 review</button></div></article>`;
+  document.querySelector('#c3backhub').onclick=nc2Hub;
+  document.querySelector('#c3donelearn').onclick=()=>{setTrainC3({learn_done:true});coc3Practice()};
+}
+function coc3Practice(){
+  if(!trainStateC3().learn_done)return coc3Learn();
+  const qs=shuffle(COC3_QUIZ).slice(0,10);let i=0,correct=0,locked=false;
+  const show=()=>{
+    if(i>=qs.length){const score=Math.round(correct/qs.length*100),old=Number(trainStateC3().practice_best||0);setTrainC3({practice_best:Math.max(old,score),practice_last:score});return coc3PracticeResult(score)}
+    const x=qs[i],choices=shuffle(x.a.map((label,original)=>({label,original})));
+    app.innerHTML=`<article class="card"><div class="row"><div><div class="ey">COC 3 · PRACTICE</div><b>Question ${i+1} of ${qs.length}</b></div><span class="pill">Target ${PASS}%</span></div><div class="progress" style="margin-top:12px"><span style="width:${Math.round(i/qs.length*100)}%"></span></div></article>
+    <article class="card hero"><h2>${esc(x.q)}</h2><div class="quiz-options">${choices.map(c=>`<button class="btn c3qopt" data-original="${c.original}">${esc(c.label)}</button>`).join('')}</div><div id="c3explain" class="notice" style="display:none;margin-top:12px"></div><div class="row" style="margin-top:14px"><button id="c3quitq" class="btn">Back to hub</button><button id="c3nextq" class="btn primary" disabled>${i===qs.length-1?'Finish':'Next question'}</button></div></article>`;
+    document.querySelector('#c3quitq').onclick=nc2Hub;
+    document.querySelectorAll('.c3qopt').forEach(b=>b.onclick=()=>{if(locked)return;locked=true;const ok=Number(b.dataset.original)===x.c;if(ok)correct++;document.querySelectorAll('.c3qopt').forEach(z=>{const zOk=Number(z.dataset.original)===x.c;z.classList.toggle('correct',zOk);if(z===b&&!ok)z.classList.add('wrong');z.disabled=true});const e=document.querySelector('#c3explain');e.style.display='block';e.innerHTML='<b class="'+(ok?'ok':'warn')+'">'+(ok?'Correct.':'Review this point.')+'</b><br>'+esc(x.why);document.querySelector('#c3nextq').disabled=false});
+    document.querySelector('#c3nextq').onclick=()=>{i++;locked=false;show()};
+  };show();
+}
+function coc3PracticeResult(score){
+  const pass=score>=PASS,st=trainStateC3();
+  app.innerHTML=`<article class="card hero"><div class="ey ${pass?'ok':'warn'}">COC 3 · PRACTICE RESULT</div><div class="score ${pass?'pass':'fail'}">${score}%</div><h1>${pass?'Knowledge target reached':'Review before server drills'}</h1><p class="muted">Class target: ${PASS}% · Best practice score: ${Number(st.practice_best||score)}%</p><div class="row"><button id="c3rhub" class="btn">Back to hub</button><button id="c3againq" class="btn">Try another randomized set</button>${pass?'<button id="toaccess" class="btn primary">Continue to User Access Drill</button>':'<button id="c3review" class="btn primary">Review COC 3</button>'}</div></article>`;
+  document.querySelector('#c3rhub').onclick=nc2Hub;document.querySelector('#c3againq').onclick=coc3Practice;
+  const d=document.querySelector('#toaccess');if(d)d.onclick=coc3AccessDrill;
+  const r=document.querySelector('#c3review');if(r)r.onclick=coc3Learn;
+}
+function coc3AccessDrill(){
+  if(Number(trainStateC3().practice_best||0)<PASS)return coc3Practice();
+  const cases=shuffle([
+    {who:'Mika · HR staff',need:'Needs to create and update files only inside the HR folder.',choices:['HR folder · Modify/Read-Write access','Domain Admins · Full control of the server','Sales folder · Read only'],correct:0,why:'Give the HR user the required folder access without server-wide administrative rights.'},
+    {who:'Paolo · Sales staff',need:'Needs to read and update Sales files, but must not access HR records.',choices:['Sales folder · Modify/Read-Write access','HR folder · Full control','Administrator account for daily work'],correct:0,why:'Grant only the Sales resource needed for the job and keep HR data separated.'},
+    {who:'Lea · Auditor',need:'Needs to inspect reports but must not change or delete them.',choices:['Reports folder · Read-only access','Reports folder · Full control','Server Administrator'],correct:0,why:'Read-only matches the stated requirement and minimizes unnecessary privilege.'},
+    {who:'New employee account',need:'The user folder and permissions were just created. What should be done before declaring setup complete?',choices:['Test the account/resource access and perform a security check','Publish the administrator password','Disable authentication','Skip testing if the folder exists'],correct:0,why:'COC 3 requires a security check after user-access configuration.'}
+  ]);
+  let i=0,errors=0;
+  const show=()=>{
+    if(i>=cases.length){setTrainC3({access_done:true,access_errors:errors});return coc3AccessResult()}
+    const x=cases[i],opts=shuffle(x.choices.map((label,original)=>({label,original})));
+    app.innerHTML=`<article class="card"><div class="row"><div><div class="ey">COC 3 · USER ACCESS DRILL</div><b>Case ${i+1} of ${cases.length}</b></div><span class="pill">Least privilege</span></div><div class="progress" style="margin-top:12px"><span style="width:${Math.round(i/cases.length*100)}%"></span></div></article>
+    <article class="card hero"><h2>${esc(x.who)}</h2><p>${esc(x.need)}</p><div class="quiz-options">${opts.map(o=>`<button class="btn accessopt" data-original="${o.original}">${esc(o.label)}</button>`).join('')}</div><div id="accessmsg" class="notice" style="display:none;margin-top:12px"></div><button id="accesshub" class="btn" style="margin-top:14px">Back to hub</button></article>`;
+    document.querySelector('#accesshub').onclick=nc2Hub;
+    document.querySelectorAll('.accessopt').forEach(b=>b.onclick=()=>{const ok=Number(b.dataset.original)===x.correct;if(ok){i++;show()}else{errors++;const m=document.querySelector('#accessmsg');m.style.display='block';m.innerHTML='<b class="warn">Access policy mismatch.</b><br>'+esc(x.why)+'<br><br>This drill will restart so the complete access-control pattern is practiced.';document.querySelectorAll('.accessopt').forEach(z=>z.disabled=true);setTimeout(()=>{i=0;show()},1100)}})
+  };show();
+}
+function coc3AccessResult(){
+  app.innerHTML=`<article class="card hero"><div class="ey ok">USER ACCESS DRILL COMPLETE</div><h1>User folders, access levels and security checks understood.</h1><p class="muted">This drill evaluates decision logic. Actual account creation, ACL configuration and testing on a network operating system still require hands-on practice.</p><div class="row"><button id="c3accesshub" class="btn">Back to hub</button><button id="toservices" class="btn primary">Continue to Services Drill</button></div></article>`;
+  document.querySelector('#c3accesshub').onclick=nc2Hub;document.querySelector('#toservices').onclick=coc3ServicesDrill;
+}
+function coc3ServicesDrill(){
+  if(!trainStateC3().access_done)return coc3AccessDrill();
+  const serviceCases=shuffle([
+    {need:'Centralized user logon and policy management',answer:'Domain controller',choices:['Domain controller','Web service','Proxy server','Print sharing']},
+    {need:'Host the company intranet/web application',answer:'Web service',choices:['Web service','File sharing','Remote access','Domain controller']},
+    {need:'Central shared folders and network printer access',answer:'File/printer sharing',choices:['File/printer sharing','Web service','Database service','Remote access']},
+    {need:'Authorized administration from another location',answer:'Remote access',choices:['Remote access','Print sharing','Database service','Web service']},
+    {need:'Application needs a centralized structured data store',answer:'Database service',choices:['Database service','Remote access','File sharing','Domain controller']},
+    {need:'Control or mediate client web requests through an intermediary service',answer:'Proxy server',choices:['Proxy server','Web service','Print sharing','Database service']}
+  ]).slice(0,4);
+  let phase='match',i=0,errors=0,flowStep=0;
+  const flow=[
+    {id:'normal',label:'Check normal server boot and network connectivity'},
+    {id:'requirement',label:'Confirm the network service required by the user/system'},
+    {id:'module',label:'Install or update the required server module/add-on using NOS procedure'},
+    {id:'configure',label:'Configure the service and required user/resource access'},
+    {id:'verify',label:'Verify operation from the server and a client; perform security check'},
+    {id:'predeploy',label:'Complete pre-deployment checks and respond to any unplanned condition'},
+    {id:'report',label:'Prepare the required deployment/test report'}
+  ];
+  const showMatch=()=>{
+    if(i>=serviceCases.length){phase='flow';return showFlow()}
+    const x=serviceCases[i],opts=shuffle(x.choices);
+    app.innerHTML=`<article class="card"><div class="row"><div><div class="ey">COC 3 · SERVICE SELECTION</div><b>Requirement ${i+1} of ${serviceCases.length}</b></div><span class="pill">Choose by requirement</span></div></article>
+    <article class="card hero"><h2>${esc(x.need)}</h2><div class="quiz-options">${opts.map(o=>`<button class="btn serviceopt" data-service="${esc(o)}">${esc(o)}</button>`).join('')}</div><div id="servicemsg" class="notice" style="display:none;margin-top:12px"></div><button id="servicehub" class="btn" style="margin-top:14px">Back to hub</button></article>`;
+    document.querySelector('#servicehub').onclick=nc2Hub;
+    document.querySelectorAll('.serviceopt').forEach(b=>b.onclick=()=>{if(b.dataset.service===x.answer){i++;showMatch()}else{errors++;const m=document.querySelector('#servicemsg');m.style.display='block';m.innerHTML='<b class="warn">Wrong server role for the requirement.</b><br>Match the service to what users or systems actually need. The service-selection section will restart.';document.querySelectorAll('.serviceopt').forEach(z=>z.disabled=true);setTimeout(()=>{i=0;showMatch()},1000)}})
+  };
+  const showFlow=()=>{
+    const remaining=flow.filter(x=>!flow.slice(0,flowStep).some(y=>y.id===x.id));
+    app.innerHTML=`<article class="card"><div class="row"><div><div class="ey">COC 3 · PRE-DEPLOYMENT FLOW</div><b>Arrange the server-service workflow</b></div><span class="pill">Step ${flowStep+1}/${flow.length}</span></div><div class="progress" style="margin-top:12px"><span style="width:${Math.round(flowStep/flow.length*100)}%"></span></div></article>
+    <article class="card"><p class="muted">Choose the next strongest step. A wrong step restarts the workflow.</p><div class="mini-flow">${shuffle(remaining).map(x=>`<button class="btn c3flow" data-id="${x.id}">${esc(x.label)}</button>`).join('')}</div><div id="c3flowmsg" class="notice" style="display:none;margin-top:12px"></div><button id="c3flowhub" class="btn" style="margin-top:14px">Back to hub</button></article>`;
+    document.querySelector('#c3flowhub').onclick=nc2Hub;
+    document.querySelectorAll('.c3flow').forEach(b=>b.onclick=()=>{const expected=flow[flowStep].id;if(b.dataset.id===expected){flowStep++;if(flowStep===flow.length){setTrainC3({services_done:true,service_errors:errors});return coc3ServicesResult()}showFlow()}else{errors++;const m=document.querySelector('#c3flowmsg');m.style.display='block';m.innerHTML='<b class="warn">Workflow reset.</b><br>Server configuration should move from health check and requirement confirmation toward configuration, verification, pre-deployment and reporting.';document.querySelectorAll('.c3flow').forEach(z=>z.disabled=true);setTimeout(()=>{flowStep=0;showFlow()},1100)}})
+  };
+  if(phase==='match')showMatch();else showFlow();
+}
+function coc3ServicesResult(){
+  app.innerHTML=`<article class="card hero"><div class="ey ok">COC 3 DIGITAL PREPARATION COMPLETE</div><h1>User access and server-service workflow completed.</h1><p>You completed the current SkillLab digital path for COC 3. Real NOS account creation, server-role installation/configuration, client testing and assessor-observed performance still require hands-on evidence.</p><div class="row"><button id="c3donehub" class="btn">Back to NC II hub</button><button id="c3serversim" class="btn primary">Open mapped server simulator</button></div></article>`;
+  document.querySelector('#c3donehub').onclick=nc2Hub;
+  document.querySelector('#c3serversim').onclick=async()=>{const slug=catalog.find(a=>COC_BY_SLUG[a.slug]===3&&!new Set(p?.completed||[]).has(a.slug))?.slug||catalog.find(a=>COC_BY_SLUG[a.slug]===3)?.slug||p?.next_slug;const x=await start(slug);if(x.error)return alert(x.error);render()};
 }
 let catalog=[],user=null,publicName='',name='',code='',p=null,sess=null,seen=[],logs=[],diag='',repair='',result=null,feedbackDone=false,lessonMode=false,liveEff=100;
 function stableName(){return `${publicName} · ${String(user.id).slice(0,8)}`.slice(0,80)}
