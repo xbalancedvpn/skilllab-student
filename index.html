@@ -578,7 +578,10 @@ async function startMockAssessment(){
   ]);
   const byCoc=[1,2,3,4].flatMap(c=>oralPool.filter(x=>x.coc===c).slice(0,3));
   const oral=shuffle(byCoc).slice(0,12);
-  const procedures=shuffle(MOCK_PROCEDURES).slice(0,6);
+  const baseProcedures=[1,2,3,4].map(c=>shuffle(MOCK_PROCEDURES.filter(x=>x.coc===c))[0]).filter(Boolean);
+  const used=new Set(baseProcedures);
+  const procedures=shuffle([...baseProcedures,...shuffle(MOCK_PROCEDURES.filter(x=>!used.has(x))).slice(0,2)]);
+  const cocBreakdown={1:{oral_correct:0,oral_total:oral.filter(x=>x.coc===1).length,procedure_correct:0,procedure_total:procedures.filter(x=>x.coc===1).length},2:{oral_correct:0,oral_total:oral.filter(x=>x.coc===2).length,procedure_correct:0,procedure_total:procedures.filter(x=>x.coc===2).length},3:{oral_correct:0,oral_total:oral.filter(x=>x.coc===3).length,procedure_correct:0,procedure_total:procedures.filter(x=>x.coc===3).length},4:{oral_correct:0,oral_total:oral.filter(x=>x.coc===4).length,procedure_correct:0,procedure_total:procedures.filter(x=>x.coc===4).length}};
   let phase='oral',i=0,oralCorrect=0,procCorrect=0,locked=false;
   const target=Math.max(75,Math.min(100,PASS));
   const showOral=()=>{
@@ -587,7 +590,7 @@ async function startMockAssessment(){
     app.innerHTML=`<article class="card"><div class="row"><div><div class="ey">MOCK ASSESSMENT · ORAL/KNOWLEDGE</div><b>Question ${i+1} of ${oral.length}</b></div><span class="pill">No hints</span></div><div class="progress" style="margin-top:12px"><span style="width:${Math.round(i/oral.length*100)}%"></span></div></article>
     <article class="card hero"><div class="ey">COC ${x.coc}</div><h2>${esc(x.q)}</h2><div class="quiz-options">${choices.map(c=>`<button class="btn mockopt" data-original="${c.original}">${esc(c.label)}</button>`).join('')}</div><div class="row" style="margin-top:14px"><button id="mockquit" class="btn">Exit mock</button><button id="mocknext" class="btn primary" disabled>Next</button></div></article>`;
     document.querySelector('#mockquit').onclick=nc2Hub;
-    document.querySelectorAll('.mockopt').forEach(b=>b.onclick=()=>{if(locked)return;locked=true;if(Number(b.dataset.original)===x.c)oralCorrect++;document.querySelectorAll('.mockopt').forEach(z=>z.disabled=true);document.querySelector('#mocknext').disabled=false});
+    document.querySelectorAll('.mockopt').forEach(b=>b.onclick=()=>{if(locked)return;locked=true;if(Number(b.dataset.original)===x.c){oralCorrect++;cocBreakdown[x.c].oral_correct++}document.querySelectorAll('.mockopt').forEach(z=>z.disabled=true);document.querySelector('#mocknext').disabled=false});
     document.querySelector('#mocknext').onclick=()=>{i++;locked=false;showOral()};
   };
   const showProcedure=()=>{
@@ -596,12 +599,12 @@ async function startMockAssessment(){
     app.innerHTML=`<article class="card"><div class="row"><div><div class="ey">MOCK ASSESSMENT · PROCEDURE DECISION</div><b>Scenario ${i+1} of ${procedures.length}</b></div><span class="pill">COC ${x.coc}</span></div><div class="progress" style="margin-top:12px"><span style="width:${Math.round(i/procedures.length*100)}%"></span></div></article>
     <article class="card hero"><h2>${esc(x.q)}</h2><p class="muted">Choose the strongest action. No explanation is shown until the mock ends.</p><div class="quiz-options">${choices.map(c=>`<button class="btn mockproc" data-original="${c.original}">${esc(c.label)}</button>`).join('')}</div><div class="row" style="margin-top:14px"><button id="mockquit2" class="btn">Exit mock</button><button id="mocknext2" class="btn primary" disabled>${i===procedures.length-1?'Submit mock':'Next'}</button></div></article>`;
     document.querySelector('#mockquit2').onclick=nc2Hub;
-    document.querySelectorAll('.mockproc').forEach(b=>b.onclick=()=>{if(locked)return;locked=true;if(Number(b.dataset.original)===x.c)procCorrect++;document.querySelectorAll('.mockproc').forEach(z=>z.disabled=true);document.querySelector('#mocknext2').disabled=false});
+    document.querySelectorAll('.mockproc').forEach(b=>b.onclick=()=>{if(locked)return;locked=true;if(Number(b.dataset.original)===x.c){procCorrect++;cocBreakdown[x.c].procedure_correct++}document.querySelectorAll('.mockproc').forEach(z=>z.disabled=true);document.querySelector('#mocknext2').disabled=false});
     document.querySelector('#mocknext2').onclick=()=>{i++;locked=false;showProcedure()};
   };
   const finishMock=async()=>{
     const oralScore=Math.round(oralCorrect/oral.length*100),procedureScore=Math.round(procCorrect/procedures.length*100),score=Math.round(oralScore*.4+procedureScore*.6),duration=Math.max(1,Math.round((Date.now()-started)/1000)),targetMet=score>=target;
-    const breakdown={oral_correct:oralCorrect,oral_total:oral.length,procedure_correct:procCorrect,procedure_total:procedures.length,weighting:'oral40_procedure60'};
+    const breakdown={oral_correct:oralCorrect,oral_total:oral.length,procedure_correct:procCorrect,procedure_total:procedures.length,weighting:'oral40_procedure60',coc:cocBreakdown};
     const {error}=await sb.from('nc2_mock_attempts').insert({class_id:p.class_id,user_id:user.id,score,oral_score:oralScore,procedure_score:procedureScore,target_score:target,target_met:targetMet,breakdown,duration_seconds:duration});
     if(error)console.warn('Mock save failed',error);
     const history=await mockHistory();
