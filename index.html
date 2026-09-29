@@ -655,5 +655,5 @@ const sub=document.querySelector('#submit');if(sub)sub.onclick=async()=>{if(!dia
 const les=document.querySelector('#lesson');if(les)les.onclick=()=>{lessonMode=true;render()};
 const next=document.querySelector('#next');if(next)next.onclick=async()=>{await refresh();if(p.finished_all)return completeScreen();const x=await start(p.next_slug);if(x.error)return alert(x.error);render()};
 const br=document.querySelector('#takebreak');if(br)br.onclick=nc2Hub;document.querySelectorAll('[data-f]').forEach(b=>b.onclick=async()=>{const x=await api({action:'feedback',attempt_id:result.attempt_id,clarity:b.dataset.f,note:document.querySelector('#note')?.value||''});if(x.error)return alert(x.error);feedbackDone=true;render()})}
-signout.onclick=async()=>{await sb.auth.signOut();user=null;authScreen()};boot();
+signout.onclick=async()=>{await sb.auth.signOut();user=null;authScreen()};boot().catch(e=>{console.error(e);app.innerHTML='<div class="card bad"><b>Student portal could not load.</b><p>'+esc(e?.message||e||'Unknown error')+'</p><p class="muted">Check your connection, then retry. Local NC II training progress already saved on this device is not deleted.</p><button id="retrystudent" class="btn">Retry</button></div>';document.querySelector('#retrystudent').onclick=()=>location.reload()});
 </script></body></html>
